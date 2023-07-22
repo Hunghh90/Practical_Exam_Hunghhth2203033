@@ -24,16 +24,43 @@ namespace Practical_Exam_Hunghhth2203033.Controllers
 
         [HttpGet]
         [Route("detail")]
-        public IActionResult Details(string employeeName)
+        public IActionResult Details(int id)
         {
-            var employee = _context.Employees.Where(p => p.EmployeeName.Contains(employeeName)).FirstOrDefault();
-            var detail = _context.Projectemployees
-                .Where(p => p.ProjectId == employee.EmployeeId)
-                .Include(p => p.Project)
-                .Include(p => p.Employee)
-                .FirstOrDefault();
-            return Ok( detail);
+            var employee =  _context.Employees
+        .Include(e => e.ProjectEmployees)
+        .ThenInclude(pe => pe.Project)
+        .FirstOrDefaultAsync(e => e.EmployeeId == id);
 
+            if (employee == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(employee);
+
+        }
+
+        [HttpGet("Search")]
+        public async Task<ActionResult<IEnumerable<Employee>>> SearchEmployees(string employeeName, DateTime? dobFrom, DateTime? dobTo)
+        {
+            IQueryable<Employee> query = _context.Employees;
+
+            if (!string.IsNullOrEmpty(employeeName))
+            {
+                query = query.Where(e => e.EmployeeName.Contains(employeeName));
+            }
+
+            if (dobFrom.HasValue)
+            {
+                query = query.Where(e => e.EmployeeDob >= dobFrom.Value);
+            }
+
+            if (dobTo.HasValue)
+            {
+                query = query.Where(e => e.EmployeeDob <= dobTo.Value);
+            }
+
+            return await query.ToListAsync();
         }
 
         [HttpPost]

@@ -24,43 +24,46 @@ namespace Practical_Exam_Hunghhth2203033.Controllers
         }
         [HttpGet]
         [Route("detail")]
-        public IActionResult Details(string projectName) 
+        public IActionResult Details(int id) 
         {
-            var pr = _context.Projects.Where(p => p.ProjectName.Contains(projectName)).FirstOrDefault();
-            var detail = _context.Projectemployees
-                .Where(p => p.ProjectId == pr.ProjectId)
-                .Include(p=> p.Project)
-                .Include(p=> p.Employee)
-                .FirstOrDefault();
-            return Ok(detail);
+            var pr =  _context.Projects
+        .Include(p => p.ProjectEmployees)
+        .ThenInclude(pe => pe.Employee)
+        .FirstOrDefaultAsync(p => p.ProjectId == id);
 
+            if (pr == null)
+            {
+                return NotFound();
+            }
+            return Ok(pr);
         }
 
         [HttpGet]
         [Route("search")]
-        public IActionResult SearchByName( string projectName, bool progress, bool finished)
+        public IActionResult SearchByName( string projectName, bool inProgress)
         {
-            if(!string.IsNullOrEmpty(projectName))
+            IQueryable<Project> query = _context.Projects;
+
+            if (!string.IsNullOrEmpty(projectName))
             {
-                var pr = _context.Projects.Where(p => p.ProjectName.Contains(projectName)).FirstOrDefault();
-                return Ok(new ProjectData
-                {
-                    ProjectName = pr.ProjectName,
-                    ProjectStartDate = pr.ProjectStartDate,
-                    ProjectEndDate = pr.ProjectEndDate,
-                });
-            }
-            if(progress)
-            {
-                var pr = _context.Projects.Where(p => p.ProjectEndDate == null || p.ProjectEndDate > DateTime.Now).ToList();
+                var pr = query.Where(p => p.ProjectName.Contains(projectName)).FirstOrDefault();
                 return Ok(pr);
             }
-            if(finished)
+
+            if (inProgress)
             {
-                var pr = _context.Projects.Where(p => p.ProjectEndDate != null || p.ProjectEndDate < DateTime.Now).ToList();
+                var pr = query.Where(p => p.ProjectEndDate == null || p.ProjectEndDate > DateTime.Now).ToList();
                 return Ok(pr);
             }
-            return NoContent();
+            else
+            {
+                var pr = query.Where(p => p.ProjectEndDate != null && p.ProjectEndDate <= DateTime.Now).ToList();
+                return Ok(pr);
+
+            }
+
+            
+
         }
 
         [HttpGet]
